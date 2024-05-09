@@ -12,7 +12,7 @@ conn = psycopg2.connect(DB_URL)
 def table_execute():
     try:
         cursor = conn.cursor()
-        
+
         create_users_table_query = """
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -28,12 +28,13 @@ def table_execute():
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER REFERENCES users(id),
                 result TEXT,
+                file_name TEXT,
                 table_names TEXT
             );
             """
         cursor.execute(create_queries_table_query)
         conn.commit()
-        
+
         cursor.close()
         conn.close()
 
@@ -42,5 +43,5 @@ def table_execute():
     except Error as e:
         print(e)
         return "Error: " + str(e)
-    
+
 table_execute()

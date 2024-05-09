@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form ,Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -31,10 +31,14 @@ async def sql_parser(sql_file: UploadFile = File(...), email: str = Form(...)):
     try:
         contents = await sql_file.read()
         sql_queries = contents.decode().split(';')
+
         if not email:
             raise ValueError("Email parameter is empty")
 
         cursor = conn.cursor()
+
+        # Extract file name from UploadFile object
+        file_name = sql_file.filename
 
         cursor.execute("SELECT id FROM users WHERE email = %s;", (email,))
         existing_user = cursor.fetchone()
@@ -50,7 +54,7 @@ async def sql_parser(sql_file: UploadFile = File(...), email: str = Form(...)):
             if not sql_query:
                 continue
             cursor.execute(sql_query)
-            
+
             if sql_query.upper().startswith("SELECT"):
                 result = cursor.fetchall()
                 table_names = re.findall(r'FROM (\w+)', sql_query, re.IGNORECASE)
@@ -60,7 +64,8 @@ async def sql_parser(sql_file: UploadFile = File(...), email: str = Form(...)):
             results.append(result)
 
             if i == 0:
-                cursor.execute("INSERT INTO queries (user_id, result, table_names) VALUES (%s, %s, %s) RETURNING id;", (user_id, str(result), ', '.join(table_names)))
+                cursor.execute("INSERT INTO queries (user_id, result, table_names, file_name) VALUES (%s, %s, %s, %s) RETURNING id;",
+                               (user_id, str(result), ', '.join(table_names), file_name))
                 query_id = cursor.fetchone()[0]
             else:
                 cursor.execute("UPDATE queries SET result = %s, table_names = %s WHERE id = %s;", (str(result), ', '.join(table_names), query_id))
@@ -78,6 +83,20 @@ async def sql_parser(sql_file: UploadFile = File(...), email: str = Form(...)):
         print("Unexpected Error:", e)
         return {"Error": str(e)}
 
+@app.post("/sql_query")
+async def execute_sql_query(query: str = Body(...)):
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        cursor.close()
+        return {"success": True, "result": result}
+    except psycopg2.Error as pe:
+        print("Psycopg2 Error:", pe)
+        return {"Error": str(pe)}
+    except Exception as e:
+        print("Unexpected Error:", e)
+        return {"Error": str(e)}
 
 @app.get("/users")
 async def get_users():
@@ -91,24 +110,25 @@ async def get_users():
         print(e)
         return {"Error": str(e)}
 
-
-@app.get("/queries")
-async def get_queries():
+@app.get("/queries/")
+async def get_queries(file_name: str = Query(...)):
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM queries;")
-        print(cursor.fetchall())
+        cursor.execute("SELECT * FROM queries WHERE file_name = %s;", (file_name,))
+        queries = cursor.fetchall()
         cursor.close()
-        return {"queries":"dsdsd"}
+        return {"success": True, "queries": queries}
+    except psycopg2.Error as pe:
+        print("Psycopg2 Error:", pe)
+        return {"Error": str(pe)}
     except Exception as e:
-        print(e)
+        print("Unexpected Error:", e)
         return {"Error": str(e)}
     
 @app.get("/tables")
 async def get_tables(drop: bool = False):
     try:
         cursor = conn.cursor()
-        # Query to retrieve all tables in the current database
         cursor.execute("""
             SELECT table_name
             FROM information_schema.tables

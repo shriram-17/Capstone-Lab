@@ -48,11 +48,10 @@ export default  function FileUpload(): JSX.Element {
         if (selectedFile) {
             try {
                 let user = await getUserNameByEmail(email);
-               /* const storage = getStorage(firebaseApp);
+                const storage = getStorage(firebaseApp);
                 let filename = selectedFile.name+"_"+email
                 const storageRef = ref(storage,filename);
                 await uploadBytes(storageRef, selectedFile);
-                */
                 const formData = new FormData();
                 formData.append('sql_file', selectedFile);
                 formData.append('email',user.email)
@@ -65,7 +64,7 @@ export default  function FileUpload(): JSX.Element {
                 
                 console.log("Response:", response.data);
              
-              //storeFile({...user,filename})
+              storeFile({...user,filename})
             } catch (error) {
                 console.error("Error:", error);
             } finally {

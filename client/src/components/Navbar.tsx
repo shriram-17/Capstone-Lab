@@ -26,11 +26,14 @@ const Navbar: React.FC<NavbarProps> = ({ userEmail }) => {
             </div>
             <div className="w-full block flex-grow lg:flex lg:items-center lg:w-auto lg:justify-end">
                 <div className="text-sm">
-                    <a onClick={() => router.push('/fileupload')} className="cursor-pointer block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
+                    <a onClick={() => router.push(`/fileupload?email=${email}`)} className="cursor-pointer block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
                         Upload File
                     </a>
                     <a onClick={() => router.push(`/query?email=${email}`)} className="cursor-pointer block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
                         Run Query
+                    </a>
+                    <a onClick={() => router.push(`/share?email=${email}`)} className="cursor-pointer block mt-4 lg:inline-block lg:mt-0 text-teal-200 hover:text-white mr-4">
+                        Share 
                     </a>
                     {email ? (
                         <span className="block mt-4 lg:inline-block lg:mt-0 text-teal-200 mr-4">
